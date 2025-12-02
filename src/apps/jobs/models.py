@@ -19,6 +19,6 @@ class Application(models.Model):
     jobseeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, related_name="applications")
     cover_letter = models.TextField()
     applied_at = models.DateTimeField(auto_now_add=True)
-
+    status = models.CharField(max_length=50, default="Pending")
     def __str__(self):
         return f"{self.jobseeker.user.username} → {self.job.title}"

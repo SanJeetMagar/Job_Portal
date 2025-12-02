@@ -23,6 +23,8 @@ from .models import Company, JobSeeker
     responses={201: UserSerializer}
 )
 class UserRegistrationView(APIView):
+    serializer_class = UserRegistrationSerializer
+
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -56,9 +58,11 @@ class UserRegistrationView(APIView):
 @extend_schema(
     tags=["Auth"],
     request=UserLoginSerializer,
-    responses={200: {"username": str, "user_type": str, "token": dict, "redirect_url": str}}
+    responses={200: UserLoginSerializer}
 )
 class UserLoginView(APIView):
+    serializer_class = UserLoginSerializer
+
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -93,6 +97,7 @@ class UserLoginView(APIView):
     responses={200: {"message": "Logged out successfully"}}
 )
 class UserLogoutView(APIView):
+    serializer_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -105,6 +110,7 @@ class UserLogoutView(APIView):
 # -----------------------------
 @extend_schema(tags=["Profile"])
 class UserProfileView(APIView):
+    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -132,6 +138,7 @@ class UserProfileView(APIView):
 # -----------------------------
 @extend_schema(tags=["Profile"])
 class CompanyProfileView(APIView):
+    serializer_class = CompanySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -151,6 +158,7 @@ class CompanyProfileView(APIView):
 # -----------------------------
 @extend_schema(tags=["Profile"])
 class JobSeekerProfileView(APIView):
+    serializer_class = JobSeekerSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):

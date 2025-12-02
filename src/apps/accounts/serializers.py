@@ -39,7 +39,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         return user
 
-    def get_token(self, obj):
+    def get_token(self, obj) -> dict:
         refresh = RefreshToken.for_user(obj)
         return {
             'refresh': str(refresh),
@@ -60,17 +60,17 @@ class UserLoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Invalid username or password")
 
-        # Generate JWT token
-        refresh = RefreshToken.for_user(user)
-
         return {
             'user': user,
             'username': user.username,
             'user_type': user.user_type,
-            'token': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
+        }
+
+    def get_token(self, obj) -> dict:
+        refresh = RefreshToken.for_user(obj['user'])
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
         }
 
 # -------------------------
@@ -91,4 +91,4 @@ class JobSeekerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobSeeker
-        fields = ['id', 'resume', 'experience', 'user']
+        fields = ['id', 'resume', 'bio', 'user']
