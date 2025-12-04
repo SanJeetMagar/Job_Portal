@@ -9,32 +9,14 @@ from .permissions import IsCompanyUser, IsJobSeekerUser, IsJobOwner, IsApplicati
 from .pagination import JobPagination, ApplicationPagination
 from .filters import JobFilter
 
-
-
 # ====================================
-#                JOBS
+#           JOBS (Public / All)
 # ====================================
 
 @extend_schema(
     tags=["Jobs"],
-    summary="Create a new job post",
-    description="Only company users can create job posts.",
-    request=JobSerializer,
-    responses={201: JobSerializer}
-)
-class JobCreateView(generics.CreateAPIView):
-    serializer_class = JobSerializer
-    permission_classes = [IsCompanyUser]
-
-    def perform_create(self, serializer):
-        # Automatically assign the company from the authenticated user
-        serializer.save(company=self.request.user.company_profile)
-
-
-@extend_schema(
-    tags=["Jobs"],
-    summary="List all job posts",
-    description="Returns a paginated list of all jobs with filtering, searching, and ordering options.",
+    summary="List all jobs",
+    description="Jobseekers can view all job posts across companies.",
     responses={200: JobSerializer}
 )
 class JobListView(generics.ListAPIView):
@@ -47,17 +29,12 @@ class JobListView(generics.ListAPIView):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        # Optionally filter by company if company_id parameter is provided
-        company_id = self.request.query_params.get('company_id')
-        if company_id:
-            return Job.objects.filter(company_id=company_id)
         return Job.objects.all()
-
 
 @extend_schema(
     tags=["Jobs"],
     summary="Retrieve a job",
-    description="Retrieve detailed information about a specific job.",
+    description="Retrieve details of a specific job (public view).",
     responses={200: JobSerializer}
 )
 class JobDetailView(generics.RetrieveAPIView):
@@ -65,36 +42,14 @@ class JobDetailView(generics.RetrieveAPIView):
     serializer_class = JobSerializer
     permission_classes = [IsAuthenticated]
 
+# ====================================
+#           COMPANY JOBS
+# ====================================
 
 @extend_schema(
-    tags=["Jobs"],
-    summary="Update a job",
-    description="Only the company who created the job can update it.",
-    request=JobSerializer,
-    responses={200: JobSerializer}
-)
-class JobUpdateView(generics.UpdateAPIView):
-    queryset = Job.objects.all()
-    serializer_class = JobSerializer
-    permission_classes = [IsCompanyUser, IsJobOwner]
-
-
-@extend_schema(
-    tags=["Jobs"],
-    summary="Delete a job",
-    description="Only the company who created the job can delete it.",
-    responses={204: None}
-)
-class JobDeleteView(generics.DestroyAPIView):
-    queryset = Job.objects.all()
-    serializer_class = JobSerializer
-    permission_classes = [IsCompanyUser, IsJobOwner]
-
-
-@extend_schema(
-    tags=["Jobs"],
-    summary="List jobs posted by current company",
-    description="Returns a list of jobs posted by the authenticated company user.",
+    tags=["Company Jobs"],
+    summary="List all jobs for current company",
+    description="Returns only jobs created by the authenticated company.",
     responses={200: JobSerializer}
 )
 class CompanyJobListView(generics.ListAPIView):
@@ -103,18 +58,70 @@ class CompanyJobListView(generics.ListAPIView):
     pagination_class = JobPagination
 
     def get_queryset(self):
-        # Return only jobs posted by the current company
         return Job.objects.filter(company=self.request.user.company_profile)
 
+@extend_schema(
+    tags=["Company Jobs"],
+    summary="Create a new job",
+    description="Create a job post for the authenticated company.",
+    request=JobSerializer,
+    responses={201: JobSerializer}
+)
+class CompanyJobCreateView(generics.CreateAPIView):
+    serializer_class = JobSerializer
+    permission_classes = [IsCompanyUser]
+
+    def perform_create(self, serializer):
+        serializer.save(company=self.request.user.company_profile)
+
+@extend_schema(
+    tags=["Company Jobs"],
+    summary="Retrieve a job for company",
+    description="Get job details only if it belongs to the authenticated company.",
+    responses={200: JobSerializer}
+)
+class CompanyJobDetailView(generics.RetrieveAPIView):
+    serializer_class = JobSerializer
+    permission_classes = [IsCompanyUser, IsJobOwner]
+
+    def get_queryset(self):
+        return Job.objects.filter(company=self.request.user.company_profile)
+
+@extend_schema(
+    tags=["Company Jobs"],
+    summary="Update a job",
+    description="Update job details only if it belongs to the authenticated company.",
+    request=JobSerializer,
+    responses={200: JobSerializer}
+)
+class CompanyJobUpdateView(generics.UpdateAPIView):
+    serializer_class = JobSerializer
+    permission_classes = [IsCompanyUser, IsJobOwner]
+
+    def get_queryset(self):
+        return Job.objects.filter(company=self.request.user.company_profile)
+
+@extend_schema(
+    tags=["Company Jobs"],
+    summary="Delete a job",
+    description="Delete a job only if it belongs to the authenticated company.",
+    responses={204: None}
+)
+class CompanyJobDeleteView(generics.DestroyAPIView):
+    serializer_class = JobSerializer
+    permission_classes = [IsCompanyUser, IsJobOwner]
+
+    def get_queryset(self):
+        return Job.objects.filter(company=self.request.user.company_profile)
 
 # ====================================
-#            APPLICATIONS
+#           APPLICATIONS
 # ====================================
 
 @extend_schema(
     tags=["Applications"],
     summary="Apply to a job",
-    description="Only job seekers can apply for jobs. The jobseeker is automatically assigned from the authenticated user.",
+    description="Only jobseekers can apply. Checks if already applied.",
     request=ApplicationSerializer,
     responses={201: ApplicationSerializer}
 )
@@ -125,28 +132,25 @@ class ApplicationCreateView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Check if already applied
+
         job = serializer.validated_data['job']
         if Application.objects.filter(job=job, jobseeker=request.user.jobseeker_profile).exists():
             return Response(
                 {"error": "You have already applied for this job."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        # Automatically assign the jobseeker from the authenticated user
         serializer.save(jobseeker=self.request.user.jobseeker_profile)
-
 
 @extend_schema(
     tags=["Applications"],
-    summary="List job applications",
-    description="Company users can view all applications submitted to their job posts.",
+    summary="List job applications (company)",
+    description="Company users can view applications only for their jobs.",
     responses={200: ApplicationSerializer}
 )
 class ApplicationListView(generics.ListAPIView):
@@ -159,14 +163,12 @@ class ApplicationListView(generics.ListAPIView):
     ordering = ['-applied_at']
 
     def get_queryset(self):
-        # Return only applications for jobs belonging to the current company
         return Application.objects.filter(job__company=self.request.user.company_profile)
-
 
 @extend_schema(
     tags=["Applications"],
     summary="Update application status",
-    description="Company users can update the status of applications for their jobs.",
+    description="Company users can update status only for their applications.",
     request=ApplicationSerializer,
     responses={200: ApplicationSerializer}
 )
@@ -174,9 +176,8 @@ class ApplicationUpdateView(generics.UpdateAPIView):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
     permission_classes = [IsCompanyUser, IsApplicationOwner]
-    
+
     def partial_update(self, request, *args, **kwargs):
-        # Only allow updating status field for company users
         if 'status' not in request.data or len(request.data) > 1:
             return Response(
                 {"error": "Only the 'status' field can be updated."},
@@ -184,11 +185,10 @@ class ApplicationUpdateView(generics.UpdateAPIView):
             )
         return super().partial_update(request, *args, **kwargs)
 
-
 @extend_schema(
     tags=["Applications"],
     summary="List my applications",
-    description="Job seekers can view all applications they have submitted.",
+    description="Jobseekers can view all applications they submitted.",
     responses={200: ApplicationSerializer}
 )
 class MyApplicationsListView(generics.ListAPIView):
@@ -197,5 +197,4 @@ class MyApplicationsListView(generics.ListAPIView):
     pagination_class = ApplicationPagination
 
     def get_queryset(self):
-        # Return only applications submitted by the current jobseeker
         return Application.objects.filter(jobseeker=self.request.user.jobseeker_profile)

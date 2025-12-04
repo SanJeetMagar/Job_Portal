@@ -1,15 +1,14 @@
-# serializers.py
 from rest_framework import serializers
 from .models import Job, Application
 
 class JobSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
     company_username = serializers.CharField(source='company.user.username', read_only=True)
-    
-    # Add custom date fields to handle datetime conversion
-    posted = serializers.DateField(format='%Y-%m-%d', required=False)
-    application_deadline = serializers.DateField(format='%Y-%m-%d', allow_null=True, required=False)
-    
+    company_id = serializers.CharField(source="company.company_id", read_only=True)
+    # Custom date fields
+    posted = serializers.SerializerMethodField()
+    application_deadline = serializers.SerializerMethodField()
+
     class Meta:
         model = Job
         fields = [
@@ -18,12 +17,23 @@ class JobSerializer(serializers.ModelSerializer):
             'benefits', 'company_info', 'applicants_count', 'saved', 
             'urgent', 'application_deadline', 'remote_policy', 
             'experience_level', 'education', 'created_at',
-            'company_name', 'company_username'
+            'company_name', 'company_username','company_id'
         ]
         read_only_fields = [
             'id', 'company', 'posted', 'applicants_count', 
             'saved', 'created_at', 'company_name', 'company_username'
         ]
+
+    def get_posted(self, obj):
+        # obj.posted may be a DateField already
+        if obj.posted:
+            return obj.posted.isoformat()  # safe for both date or datetime
+        return None
+
+    def get_application_deadline(self, obj):
+        if obj.application_deadline:
+            return obj.application_deadline.isoformat()
+        return None
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -31,7 +41,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     jobseeker_name = serializers.CharField(source='jobseeker.user.get_full_name', read_only=True)
     jobseeker_username = serializers.CharField(source='jobseeker.user.username', read_only=True)
     company_name = serializers.CharField(source='job.company.company_name', read_only=True)
-    
+
     class Meta:
         model = Application
         fields = [
