@@ -5,9 +5,10 @@ class JobSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
     company_username = serializers.CharField(source='company.user.username', read_only=True)
     company_id = serializers.CharField(source="company.company_id", read_only=True)
-    # Custom date fields
+
     posted = serializers.SerializerMethodField()
     application_deadline = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Job
@@ -21,13 +22,12 @@ class JobSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'company', 'posted', 'applicants_count', 
-            'saved', 'created_at', 'company_name', 'company_username'
+            'created_at', 'company_name', 'company_username', 'company_id'
         ]
 
     def get_posted(self, obj):
-        # obj.posted may be a DateField already
         if obj.posted:
-            return obj.posted.isoformat()  # safe for both date or datetime
+            return obj.posted.isoformat()
         return None
 
     def get_application_deadline(self, obj):
@@ -49,6 +49,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'job_title', 'jobseeker_name', 'jobseeker_username', 'company_name'
         ]
         read_only_fields = [
-            'id', 'jobseeker', 'applied_at', 'status',
-            'job_title', 'jobseeker_name', 'jobseeker_username', 'company_name'
+            'id', 'jobseeker', 'applied_at', 'job_title', 'jobseeker_name', 
+            'jobseeker_username', 'company_name'
         ]
+
+
+class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ['status']

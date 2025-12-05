@@ -29,6 +29,12 @@ class Job(models.Model):
 
 
 class Application(models.Model):
+    STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Reviewed", "Reviewed"),
+        ("Accepted", "Accepted"),
+        ("Rejected", "Rejected"),
+    ]
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
     jobseeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, related_name="applications")
     cover_letter = models.TextField()

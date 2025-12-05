@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from .models import Job, Application
-from .serializers import JobSerializer, ApplicationSerializer
+from .serializers import JobSerializer, ApplicationSerializer, ApplicationStatusUpdateSerializer
 from .permissions import IsCompanyUser, IsJobSeekerUser, IsJobOwner, IsApplicationOwner
 from .pagination import JobPagination, ApplicationPagination
 from .filters import JobFilter
@@ -30,6 +30,12 @@ class JobListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Job.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 @extend_schema(
     tags=["Jobs"],
@@ -169,22 +175,34 @@ class ApplicationListView(generics.ListAPIView):
     tags=["Applications"],
     summary="Update application status",
     description="Company users can update status only for their applications.",
-    request=ApplicationSerializer,
+    request=ApplicationStatusUpdateSerializer,
     responses={200: ApplicationSerializer}
 )
 class ApplicationUpdateView(generics.UpdateAPIView):
     queryset = Application.objects.all()
-    serializer_class = ApplicationSerializer
+    serializer_class = ApplicationSerializer  # full serializer for response
     permission_classes = [IsCompanyUser, IsApplicationOwner]
 
     def partial_update(self, request, *args, **kwargs):
+        # Only allow status field
         if 'status' not in request.data or len(request.data) > 1:
             return Response(
                 {"error": "Only the 'status' field can be updated."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return super().partial_update(request, *args, **kwargs)
 
+        # Update only the status
+        instance = self.get_object()
+        status_serializer = ApplicationStatusUpdateSerializer(
+            instance, data=request.data, partial=True
+        )
+        status_serializer.is_valid(raise_exception=True)
+        status_serializer.save()
+
+        # Return the full updated object
+        full_serializer = self.get_serializer(instance)
+        return Response(full_serializer.data, status=status.HTTP_200_OK)
+    
 @extend_schema(
     tags=["Applications"],
     summary="List my applications",

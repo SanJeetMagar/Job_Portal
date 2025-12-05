@@ -76,18 +76,25 @@ class UserLoginView(APIView):
                 "access": str(refresh.access_token),
             }
 
-            # Set redirect URL based on user type
-            redirect_url = "/company" if user.user_type == "company" else "/jobseeker"
-
-            return Response({
+            # Base response
+            response_data = {
                 "username": user.username,
+                "email": user.email,
                 "user_type": user.user_type,
                 "token": token_data,
-                "redirect_url": redirect_url
-            }, status=status.HTTP_200_OK)
+            }
+
+            # Add profile data based on user type
+            if user.user_type == "company":
+                response_data["profile"] = CompanySerializer(user.company_profile).data
+                response_data["redirect_url"] = "/company"
+            else:
+                response_data["profile"] = JobSeekerSerializer(user.jobseeker_profile).data
+                response_data["redirect_url"] = "/jobseeker"
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # -----------------------------
 # USER LOGOUT
