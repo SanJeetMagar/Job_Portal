@@ -76,15 +76,20 @@ class UserLoginSerializer(serializers.Serializer):
 # -------------------------
 # Company Serializer
 # -------------------------
+# -------------------------
+# Company Update Serializer
+# -------------------------
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Company
-        fields = ['id', 'company_name', 'user']
+        fields = ['id', 'company_id', 'company_name', 'description', 'website', 'user']
+        read_only_fields = ['id', 'company_id', 'user']
+        
 
 # -------------------------
-# JobSeeker Serializer
+# JobSeeker Update Serializer
 # -------------------------
 class JobSeekerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -92,3 +97,4 @@ class JobSeekerSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobSeeker
         fields = ['id', 'resume', 'bio', 'user']
+        read_only_fields = ['id', 'user']

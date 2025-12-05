@@ -180,3 +180,38 @@ class JobSeekerProfileView(APIView):
                 {"error": "This user does not have a job seeker profile."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+
+@extend_schema(tags=["Profile"])
+class CompanyProfileUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        try:
+            company = Company.objects.get(user=request.user)
+        except Company.DoesNotExist:
+            return Response({"error": "Company profile not found"}, status=404)
+
+        serializer = CompanySerializer(company, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Company profile updated", "data": serializer.data})
+        return Response(serializer.errors, status=400)
+
+
+@extend_schema(tags=["Profile"])
+class JobSeekerProfileUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        try:
+            jobseeker = JobSeeker.objects.get(user=request.user)
+        except JobSeeker.DoesNotExist:
+            return Response({"error": "Jobseeker profile not found"}, status=404)
+
+        serializer = JobSeekerSerializer(jobseeker, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Jobseeker profile updated", "data": serializer.data})
+        return Response(serializer.errors, status=400)
