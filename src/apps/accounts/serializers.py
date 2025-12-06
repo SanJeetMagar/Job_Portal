@@ -81,20 +81,30 @@ class UserLoginSerializer(serializers.Serializer):
 # -------------------------
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    logo = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Company
-        fields = ['id', 'company_id', 'company_name', 'description', 'website', 'user']
-        read_only_fields = ['id', 'company_id', 'user']
-        
+        fields = [
+            "id", "company_id", "company_name", "tagline", "description", "website",
+            "email", "phone", "location", "founded", "industry", "company_size",
+            "company_info", "logo", "user"
+        ]
+        read_only_fields = ["id", "company_id", "user"]
 
-# -------------------------
-# JobSeeker Update Serializer
-# -------------------------
 class JobSeekerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+    resume = serializers.FileField(required=False, allow_null=True)
+    skills = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
+    experience = serializers.ListField(child=serializers.DictField(), required=False)
+    education = serializers.ListField(child=serializers.DictField(), required=False)
 
     class Meta:
         model = JobSeeker
-        fields = ['id', 'resume', 'bio', 'user']
-        read_only_fields = ['id', 'user']
+        fields = [
+            "id", "full_name", "title", "bio", "location",
+            "skills", "experience", "education",
+            "profile_picture", "resume", "user"
+        ]
+        read_only_fields = ["id", "user"]

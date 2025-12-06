@@ -10,6 +10,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     # Default homepage = Swagger UI
     path("", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
@@ -28,5 +31,13 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
+    # Admin
     path("admin/", admin.site.urls),
 ]
+
+
+# ------------------------------------------------
+# 🔥 VERY IMPORTANT FOR USER PROFILE / COMPANY LOGO / RESUME FILES
+# ------------------------------------------------
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

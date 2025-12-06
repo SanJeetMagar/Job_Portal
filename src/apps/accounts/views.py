@@ -1,9 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions,generics
 from django.contrib.auth import login, logout
 from drf_spectacular.utils import extend_schema
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -182,36 +184,33 @@ class JobSeekerProfileView(APIView):
             )
 
 
-
 @extend_schema(tags=["Profile"])
-class CompanyProfileUpdateView(APIView):
+class CompanyProfileUpdateView(generics.UpdateAPIView):
+    serializer_class = CompanySerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # accept files + json
 
-    def patch(self, request):
-        try:
-            company = Company.objects.get(user=request.user)
-        except Company.DoesNotExist:
-            return Response({"error": "Company profile not found"}, status=404)
+    def get_object(self):
+        return self.request.user.company_profile
 
-        serializer = CompanySerializer(company, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Company profile updated", "data": serializer.data})
-        return Response(serializer.errors, status=400)
-
-
+    def patch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Company profile updated", "data": serializer.data}, status=status.HTTP_200_OK)
 @extend_schema(tags=["Profile"])
-class JobSeekerProfileUpdateView(APIView):
+class JobSeekerProfileUpdateView(generics.UpdateAPIView):
+    serializer_class = JobSeekerSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    def patch(self, request):
-        try:
-            jobseeker = JobSeeker.objects.get(user=request.user)
-        except JobSeeker.DoesNotExist:
-            return Response({"error": "Jobseeker profile not found"}, status=404)
+    def get_object(self):
+        return self.request.user.jobseeker_profile
 
-        serializer = JobSeekerSerializer(jobseeker, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Jobseeker profile updated", "data": serializer.data})
-        return Response(serializer.errors, status=400)
+    def patch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Jobseeker profile updated", "data": serializer.data}, status=status.HTTP_200_OK)
